@@ -1,0 +1,80 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+*.whl
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checkers / linters
+.mypy_cache/
+.pytype/
+.pyre/
+.ruff_cache/
+
+# Environments
+.env
+.venv/
+venv/
+env/
+ENV/
+venv.bak/
+env.bak/
+.python-version
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_convert/
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local data / checkpoints / weights
+pretrain_models/
+checkpoints/
+results/
+data/
+*.pth
+*.pt
+*.ckpt
+
+# Misc caches
+__pypackages__/
+.sconsign.dblite
+
+# uv
+uv.lock
+
+# examples
+*.ipynb
+tst/

@@ -11,7 +11,27 @@ import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
 
-models_dir = os.path.expanduser('pretrain_models')
+_PRETRAIN_DIR_OVERRIDE = None
+
+def set_pretrain_dir(path: str):
+    global _PRETRAIN_DIR_OVERRIDE
+    _PRETRAIN_DIR_OVERRIDE = path
+
+
+def _resolve_pretrain_dir() -> str:
+    if _PRETRAIN_DIR_OVERRIDE:
+        os.makedirs(_PRETRAIN_DIR_OVERRIDE, exist_ok=True)
+        return _PRETRAIN_DIR_OVERRIDE
+    env_dir = os.environ.get("OPENGRAPHAU_PRETRAIN_DIR")
+    if env_dir:
+        os.makedirs(env_dir, exist_ok=True)
+        return env_dir
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "opengraphau", "pretrain_models")
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
+models_dir = _resolve_pretrain_dir()
 model_name = {
     'swin_transformer_tiny': 'swin_tiny_patch4_window7_224.pth',
     'swin_transformer_small': 'swin_small_patch4_window7_224.pth',
@@ -604,7 +624,7 @@ def swin_transformer_tiny(pretrained=True, **kwargs):
     model = SwinTransformer(embed_dim=96,depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
                  window_size=7,drop_path_rate=0.2, num_classes=21841, **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['swin_transformer_tiny']))['model'])
+        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['swin_transformer_tiny']), map_location='cpu')['model'])
     return model
 
 
@@ -619,7 +639,7 @@ def swin_transformer_small(pretrained=True, **kwargs):
     model = SwinTransformer(embed_dim=96, depths=[ 2, 2, 18, 2 ], num_heads=[ 3, 6, 12, 24 ],
                  window_size=7,drop_path_rate=0.3, **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['swin_transformer_small']))['model'])
+        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['swin_transformer_small']), map_location='cpu')['model'])
     return model
 
 
@@ -634,7 +654,7 @@ def swin_transformer_base(pretrained=True, **kwargs):
     model = SwinTransformer(embed_dim=128, depths=[ 2, 2, 18, 2 ], num_heads=[ 4, 8, 16, 32 ],
                  window_size=7,drop_path_rate=0.5, **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['swin_transformer_base']))['model'])
+        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['swin_transformer_base']), map_location='cpu')['model'])
     return model
 
 
@@ -643,4 +663,4 @@ if __name__=="__main__":
     input = torch.randn(1,3,224,224)
     print(model)
     output = model(input)
-    print("output_shape:",output.shape)
+    print("output_shape:",output.shape) 

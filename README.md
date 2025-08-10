@@ -1,114 +1,85 @@
-# OpenGrpahAU
+## OpenGraphAU (inference-only)
 
+Minimal, PyTorch-like API to instantiate OpenGraphAU models, load weights, run inference, and list output labels.
 
-This repo is the OpenGprahAU tool.
+This project is a streamlined fork of the original OpenGraphAU and ME-GraphAU codebases. Please see and cite the original work:
+- Original OpenGraphAU repository: [lingjivoo/OpenGraphAU](https://github.com/lingjivoo/OpenGraphAU)
+- ME-GraphAU (IJCAI 2022) repository: [CVI-SZU/ME-GraphAU](https://github.com/CVI-SZU/ME-GraphAU)
+- Paper: Luo et al., “Learning Multi-dimensional Edge Feature-based AU Relation Graph for Facial Action Unit Recognition,” IJCAI-ECAI 2022 ([repo link](https://github.com/CVI-SZU/ME-GraphAU))
 
-demo:
-<p align="center">
-  <img src="demo_imgs/10025_pred.jpg" width="80%" />
-  <img src="demo_imgs/25329_pred.jpg" width="80%" />
-  <img src="demo_imgs/10259_pred.jpg" width="80%" />
-  <img src="demo_imgs/828_pred.jpg" width="80%" />
+### Install
+- From source: `pip install -e .`
+- Or use `requirements.txt` in your environment.
 
-</p>
+### Interfaces
+- Low-level (raw PyTorch): you get a `torch.nn.Module` and must preprocess tensors yourself (CHW/BCHW normalized with ImageNet mean/std, sized exactly 224×224).
+- High-level (`OpenGraphAUPredictor`): pass a PIL image (or a ready 224×224 tensor); preprocessing is applied internally for PIL via torchvision transforms.
+- Labels: `list_labels()` for AU codes, `list_label_full_names()` for human names, `label_name_map()` for dict, or `labels_info()` for list of (code, name).
 
-Models were traiend on hybrid dataset of 2,000k images.
+### Low-level usage (handcrafted preprocessing)```python
+import torch
+import torchvision.transforms as T
+from opengraphau import load_model
 
-This hybrid dataset includes:
- * [BP4D](http://www.cs.binghamton.edu/~lijun/Research/3DFE/3DFE_Analysis.html)
- * [DISFA](http://mohammadmahoor.com/disfa-contact-form/)
- * [RAF-AU](http://www.whdeng.cn/RAF/model3.html)
- * [AFF-Wild 2](https://ibug.doc.ic.ac.uk/resources/aff-wild2/)
- * [CK+](http://www.jeffcohn.net/Resources/)
- * [CASME II](http://casme.psych.ac.cn/casme/e2)
+# Create raw model and move to device. Optionally set local backbone weights dir via backbone_pretrain_dir
+model = load_model(stage=2, backbone="resnet50", weights_path="/path/to/model.pth", device="cuda", backbone_pretrain_dir="/path/to/pretrain_models").eval()
 
+# Prepare tensor(s) by hand: BCHW uint8 [0,255], size exactly 224x224
+x = torch.randint(0, 256, (8, 3, 224, 224), dtype=torch.uint8)
 
-The tool can predict action units of 41 categories:
+# Handcrafted preprocessing pipeline (no resize/crop here)
+preprocess = T.Compose([
+    T.ConvertImageDtype(torch.float32),
+    T.Lambda(lambda t: t/255.0),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
 
-| AU1 | AU2 | AU4 | AU5 | AU6 | AU7 | AU9 |   AU10 | AU11  | AU12 | AU13 | AU14 | AU15 | AU16 | 
-| :-----:  | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: |
-| Inner brow raiser| Outer brow raiser | Brow lowerer  | Upper lid raiser  | Cheek raiser | Lid tightener | Nose wrinkler | Upper lip raiser | Nasolabial deepener | Lip corner puller | Sharp lip puller | Dimpler | Lip corner depressor | Lower lip depressor |
+x = preprocess(x).to("cuda")
 
-| AU17 | AU18 | AU19 | AU20 | AU22 | AU23 | AU24 |   AU25 | AU26  | AU27 | AU32 | AU38 | AU39 | - | 
-| :-----:  | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: |
-| Chin raiser | Lip pucker | Tongue show | Lip stretcher  | Lip funneler | Lip tightener | Lip pressor | Lips part | Jaw drop | Mouth stretch | Lip bite | Nostril dilator | Nostril compressor | - |
-
-| AUL1 | AUL1 | AUL2 | AUR2 | AUL4 | AUR4 | AUL6 |   AUR6 | AUL10  | AUR10 | AUL12 | AUR12 | AUL14 | AUR14 | 
-| :-----:  | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: | :-----: |
-| Left inner brow raiser | Right inner brow raiser | Left outer brow raiser | Right outer brow raiser| Left brow lowerer | Right brow lowerer | Left cheek raiser | Right cheek raiser | Left upper lip raiser | Right upper lip raiser | Left nasolabial deepener | Right nasolabial deepener | Left dimpler | Right dimpler |
-
-
-
-We provide tools for prepareing data in ```tool/```.
-After Downloading raw data files, you can use these tools to process them, aligning with our protocals.
-We divide the dataset into three independent parts (i.e., train, val, test).
-
-## Pretrained models
-
-Hybrid Dataset
-
-### Stage1:
-
-|arch_type|GoogleDrive link| Average F1-score| Average Acc.|
-| :--- | :---: |  :---: |  :---: | 
-|`Ours (MobileNetV3)`| -| - |  - |
-|`Ours (ResNet-18)`| [link](https://drive.google.com/file/d/1b9yrKF663K9IwY2C2-1SD6azpAdNgBm7/view?usp=share_link) | 22.33 |  92.97 |
-|`Ours (ResNet-50)`| [link](https://drive.google.com/file/d/11xh9r2e4qCpWEtQ-ptJGWut_TQ0_AmSp/view?usp=share_link) | 22.52 |  92.63 |
-|`Ours (Swin-Tiny)`| [link](https://drive.google.com/file/d/1JSa-ft965qXJlVGvnoMepbkRkSm78_to/view?usp=share_link) | 22.66 | 92.97 |
-|`Ours (Swin-Small)`| [link](https://drive.google.com/file/d/1GNjFKpd00nvgYIP2q7AzRSzfzEUfAqfT/view?usp=share_link) | 24.49 | 92.84 |
-|`Ours (Swin-Base)`| [link](https://drive.google.com/file/d/1nWwowmq4pQn1ACnSOOeyBy6-n0rmqTQ9/view?usp=share_link) | 23.53 | 92.91 |
-
-
-### Stage2:
-
-|arch_type|GoogleDrive link| Average F1-score| Average Acc.|
-| :--- | :---: |  :---: | :---: |
-|`Ours (MobileNetV3)`| -| - |  - |
-|`Ours (ResNet-18)`|[link](https://drive.google.com/file/d/1CzWgr2ywt7TmxHLWM5tg1VaEbgGYyAZ4/view?usp=sharing) | 22.51 | 93.23 |
-|`Ours (ResNet-50)`| [link](https://drive.google.com/file/d/1UMnpbj_YKlqHF1m0DHV0KYD3qmcOmeXp/view?usp=sharing)| 23.24 | 93.31 |
-|`Ours (Swin-Tiny)`|[link](https://drive.google.com/file/d/1yRWnYY5BR_FDiquaKnzf_aCdkyjZM77E/view?usp=sharing)| 22.74 | 93.37 |
-|`Ours (Swin-Small)`| - | - | - |
-|`Ours (Swin-Base)`| - | - | - |
-
-
-
-## Demo
-- to detect facial action units in a facial image using our stage1 model, run:
-```
-python demo.py --arc resnet50 --stage 1 --exp-name demo --resume checkpoints/OpenGprahAU-ResNet50_first_stage.pth --input demo_imgs/1014.jpg  --draw_text
+with torch.no_grad():
+    logits = model(x)  # shape (B, 41)
 ```
 
-- to detect facial action units in a facial image using our stage2 model, run:
-```
-python demo.py --arc resnet50 --stage 2 --exp-name demo --resume checkpoints/OpenGprahAU-ResNet50_second_stage.pth --input demo_imgs/1014.jpg  --draw_text
-```
+### High-level usage
+```python
+from PIL import Image
+from opengraphau.inference import OpenGraphAUPredictor
 
-## Training and Testing
+# By default, threshold=0.0 selects AUs with non-negative logits
+predictor = OpenGraphAUPredictor(stage=2, backbone="resnet50", weights_path="FILE_ID", device="cpu", threshold=0.0)
 
-- to train the first stage of our approach (ResNet-50) on hybrid Dataset, run:
-```
-python train_stage1.py --arc resnet50 --exp-name OpenGprahAU-ResNet50_first_stage -b 512 -lr 0.00002  
-```
+# PIL image (resize+center-crop+ToTensor+normalize are applied internally)
+image = Image.open("/path/to/image.jpg").convert("RGB")
+logits, active_aus = predictor.predict(image)
 
-
-- to test the first stage of our approach (SwinT) on hybrid Dataset, run:
-```
-python test_stage1.py --arc swin_transformer_tiny --exp-name test_OpenGprahAU-SwinT_first_stage  --resume ./results/OpenGprahAU-SwinT_first_stage/bs_64_seed_0_lr_2e-05/best_model.pth
+# Optional: tensor path (CHW or BCHW, must be 224x224); normalization handled internally
+logits_batch = predictor.predict_tensor(torch.rand(8, 3, 224, 224))
 ```
 
+### Preprocessing and normalization
+- Inputs should be RGB and normalized with ImageNet mean/std used by torchvision backbones: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225].
+- Low-level: tensors must be sized 224×224; Divide, Normalize.
+- High-level: `predict(image)` applies resize+center-crop+ToTensor+normalize for PIL; `predict_tensor(x)` expects tensors already sized 224×224 and normalizes them.
+- Move the model/tensors to device as needed; `.to(device)` is standard [PyTorch](https://discuss.pytorch.org/t/understanding-model-to-device/123662).
 
+### Labels
+```python
+from opengraphau import list_labels, list_label_full_names, label_name_map, labels_info
 
-
-- to train the second stage of our approach (ResNet-50) on hybrid Dataset, run:
+codes = list_labels()                 # ['AU1', 'AU2', ...]
+full_names = list_label_full_names()  # ['Inner brow raiser', 'Outer brow raiser', ...]
+code_to_name = label_name_map()       # {'AU1': 'Inner brow raiser', ...}
+code_name_pairs = labels_info()       # [('AU1','Inner brow raiser'), ...]
 ```
-python train_stage2.py --arc resnet50 --exp-name OpenGprahAU-ResNet50_second_stage -b 512 -lr 0.00001  --resume checkpoints/OpenGprahAU-ResNet50_first_stage.pth
-```
 
-
-- to test the second stage of our approach (SwinT) on hybrid Dataset, run:
-```
-python test_stage2.py --arc swin_transformer_tiny --exp-name test_OpenGprahAU-SwinT_second_stage  --resume ./results/OpenGprahAU-SwinT_second_stage/bs_64_seed_0_lr_1e-05/best_model.pth
-```
+### Notes
+- Backbone pretrained weights directory can be set via:
+  - `backbone_pretrain_dir` argument to `load_model(...)`
+  - or env var `OPENGRAPHAU_PRETRAIN_DIR`
+  Else defaults to `~/.cache/opengraphau/pretrain_models`.
+- Outputs are 41 logits in the order of `list_labels()`; no sigmoid is applied.
+- Backbones: ResNet-18/50/101 and Swin-Tiny/Small/Base.
+- Inference-only repository.
 
 
 

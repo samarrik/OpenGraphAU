@@ -1,3 +1,12 @@
+OpenGraphAU (inference-only) — Fork Notice
+
+This repository is a streamlined fork of the original OpenGraphAU and ME-GraphAU projects to provide an inference-only, PyTorch-like API.
+- Original OpenGraphAU repository: https://github.com/lingjivoo/OpenGraphAU
+- ME-GraphAU repository (IJCAI 2022): https://github.com/CVI-SZU/ME-GraphAU
+
+This fork retains the original Apache-2.0 license terms below.
+
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

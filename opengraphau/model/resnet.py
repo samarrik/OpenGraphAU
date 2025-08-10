@@ -7,18 +7,40 @@ import math
 import torch
 import torch.nn as nn
 import torchvision.models
-__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
+from torch.hub import load_state_dict_from_url
+__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'set_pretrain_dir']
 
-# you need to download the models to ~/.torch/models
-# model_urls = {
-#     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
-#     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-#     'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
-#     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
-#     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
-# }
+# Allow factory to set a preferred pretrain directory
+_PRETRAIN_DIR_OVERRIDE = None
 
-models_dir = os.path.expanduser('pretrain_models')
+def set_pretrain_dir(path: str):
+    global _PRETRAIN_DIR_OVERRIDE
+    _PRETRAIN_DIR_OVERRIDE = path
+
+
+def _resolve_pretrain_dir() -> str:
+    if _PRETRAIN_DIR_OVERRIDE:
+        os.makedirs(_PRETRAIN_DIR_OVERRIDE, exist_ok=True)
+        return _PRETRAIN_DIR_OVERRIDE
+    env_dir = os.environ.get("OPENGRAPHAU_PRETRAIN_DIR")
+    if env_dir:
+        os.makedirs(env_dir, exist_ok=True)
+        return env_dir
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "opengraphau", "pretrain_models")
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
+# Official torchvision URL mapping (legacy ImageNet-1k weights)
+model_urls = {
+    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+}
+
+models_dir = _resolve_pretrain_dir()
 model_name = {
     'resnet18': 'resnet18-5c106cde.pth',
     'resnet34': 'resnet34-333f7ec4.pth',
@@ -26,6 +48,25 @@ model_name = {
     'resnet101': 'resnet101-5d3b4d8f.pth',
     'resnet152': 'resnet152-b121ed2d.pth',
 }
+
+
+def _load_pretrained_state_dict(arch: str):
+    filename = model_name[arch]
+    local_path = os.path.join(models_dir, filename)
+    # Use local file if present
+    if os.path.exists(local_path):
+        return torch.load(local_path, map_location="cpu")
+    # Otherwise download to our cache directory and return state dict
+    url = model_urls.get(arch)
+    if not url:
+        raise FileNotFoundError(f"No pretrained URL configured for arch: {arch}")
+    state_dict = load_state_dict_from_url(url, model_dir=models_dir, progress=True, map_location="cpu")
+    # Persist as a copy to the expected filename for future runs
+    try:
+        torch.save(state_dict, local_path)
+    except Exception:
+        pass
+    return state_dict
 
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -168,7 +209,8 @@ def resnet18(pretrained=True, **kwargs):
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['resnet18'])))
+        state = _load_pretrained_state_dict('resnet18')
+        model.load_state_dict(state, strict=False)
     return model
 
 
@@ -180,7 +222,8 @@ def resnet34(pretrained=True, **kwargs):
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['resnet34'])))
+        state = _load_pretrained_state_dict('resnet34')
+        model.load_state_dict(state, strict=False)
     return model
 
 
@@ -192,7 +235,8 @@ def resnet50(pretrained=True, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['resnet50'])))
+        state = _load_pretrained_state_dict('resnet50')
+        model.load_state_dict(state, strict=False)
     return model
 
 
@@ -204,7 +248,8 @@ def resnet101(pretrained=True, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['resnet101'])))
+        state = _load_pretrained_state_dict('resnet101')
+        model.load_state_dict(state, strict=False)
     return model
 
 
@@ -216,5 +261,6 @@ def resnet152(pretrained=True, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
-        model.load_state_dict(torch.load(os.path.join(models_dir, model_name['resnet152'])))
-    return model
+        state = _load_pretrained_state_dict('resnet152')
+        model.load_state_dict(state, strict=False)
+    return model 
