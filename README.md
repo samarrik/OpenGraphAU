@@ -16,7 +16,9 @@ This project is a streamlined fork of the original OpenGraphAU and ME-GraphAU co
 - High-level (`OpenGraphAUPredictor`): pass a PIL image (or a ready 224×224 tensor); preprocessing is applied internally for PIL via torchvision transforms.
 - Labels: `list_labels()` for AU codes, `list_label_full_names()` for human names, `label_name_map()` for dict, or `labels_info()` for list of (code, name).
 
-### Low-level usage (handcrafted preprocessing)```python
+### Low-level usage (handcrafted preprocessing)
+
+```python
 import torch
 import torchvision.transforms as T
 from opengraphau import load_model
@@ -44,6 +46,7 @@ with torch.no_grad():
 ```python
 from PIL import Image
 from opengraphau.inference import OpenGraphAUPredictor
+import torch
 
 # By default, threshold=0.0 selects AUs with non-negative logits
 predictor = OpenGraphAUPredictor(stage=2, backbone="resnet50", weights_path="FILE_ID", device="cpu", threshold=0.0)
