@@ -15,7 +15,10 @@ _PRETRAIN_DIR_OVERRIDE = None
 
 def set_pretrain_dir(path: str):
     global _PRETRAIN_DIR_OVERRIDE
+    global models_dir
     _PRETRAIN_DIR_OVERRIDE = path
+    # Refresh resolved directory so subsequent loads use the override
+    models_dir = _resolve_pretrain_dir()
 
 
 def _resolve_pretrain_dir() -> str:

@@ -164,7 +164,7 @@ def load_model(
     metric: str = "dots",
     weights_path: Optional[str] = None,
     map_location: Optional[str] = "cpu",
-    weights_cache_dir: Optional[str] = None,
+    model_dir: Optional[str] = None,
     device: Optional[str] = None,
     backbone_pretrain_dir: Optional[str] = None,
 ) -> torch.nn.Module:
@@ -179,9 +179,8 @@ def load_model(
         metric: Only used by stage 1.
         weights_path: Local path, Google Drive URL, or file id to load. If Google Drive, uses gdown.
         map_location: torch.load map_location for checkpoint. If `device` is given, this is ignored.
-        weights_cache_dir: Optional directory to cache downloaded weights (defaults to ~/.cache/opengraphau).
+        model_dir: Optional directory to store downloaded model weights (defaults to ~/.cache/opengraphau).
         device: Optional torch device string (e.g., 'cuda', 'cuda:0', or 'cpu'). If provided, the model is moved to this device.
-        backbone_pretrain_dir: Optional directory containing backbone pretrained weights (e.g., resnet50-19c8e357.pth, swin_*.pth).
             If not provided, falls back to env OPENGRAPHAU_PRETRAIN_DIR or ~/.cache/opengraphau/pretrain_models.
     Returns:
         torch.nn.Module ready for inference. Caller should call .eval() as needed.
@@ -193,7 +192,7 @@ def load_model(
         num_sub_classes=num_sub_classes,
         neighbor_num=neighbor_num,
         metric=metric,
-        pretrain_dir=backbone_pretrain_dir,
+        pretrain_dir=model_dir,
     )
 
     try:
@@ -208,7 +207,7 @@ def load_model(
         resolved_path = weights_path
         if _is_gdrive_ref(weights_path):
             default_name = f"opengraphau_{backbone}_stage{stage}.pth"
-            resolved_path = _download_gdrive(weights_path, cache_dir=weights_cache_dir, filename=default_name)
+            resolved_path = _download_gdrive(weights_path, cache_dir=model_dir, filename=default_name)
 
         ckpt = _torch_load_compat(resolved_path, map_location=effective_map_location)
         state_dict = _extract_state_dict(ckpt)

@@ -18,13 +18,14 @@ class OpenGraphAUPredictor:
         threshold: float = 0.0,
         crop_size: int = 224,
         model: Optional[torch.nn.Module] = None,
+        model_dir: Optional[str] = None,
     ) -> None:
         if model is not None:
             self.model = model
             if device is not None:
                 self.model.to(torch.device(device))
         else:
-            self.model = load_model(stage=stage, backbone=backbone, weights_path=weights_path, device=device)
+            self.model = load_model(stage=stage, backbone=backbone, weights_path=weights_path, device=device, model_dir=model_dir)
         self.model.eval()
         self.device = torch.device(device) if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
